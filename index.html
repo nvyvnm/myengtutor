@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My AI English Tutor</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#fbfbf7;--grid:#dbe5ef;--ink:#1d2340;--soft:#5b6283;--pink:#ff8cc3;--green:#cdf37f;--orange:#ffbe7a;--line:#c9d3e0}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;background-color:var(--paper);
+background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px}
+header{padding:20px 16px 4px;max-width:760px;margin:auto}
+h1{font:700 40px/1 Caveat,cursive;margin:0}
+h1 span{background:linear-gradient(transparent 55%,var(--pink) 55%,var(--pink) 90%,transparent 90%)}
+nav{display:flex;gap:4px;overflow-x:auto;max-width:760px;margin:12px auto 0;padding:0 12px}
+nav button{border:0;background:none;font:600 15px system-ui;padding:8px 10px;color:var(--soft);white-space:nowrap;cursor:pointer}
+nav button.on{color:var(--ink);background:linear-gradient(transparent 60%,var(--green) 60%)}
+main{max-width:760px;margin:auto;padding:12px}
+section{display:none}section.on{display:block}
+.card{background:var(--paper);border:1.5px solid var(--ink);border-radius:6px;padding:14px;margin-bottom:14px}
+textarea,input,select{width:100%;font:inherit;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:6px;padding:9px;margin:4px 0}
+textarea:focus,input:focus,select:focus,button:focus-visible{outline:3px solid var(--orange);outline-offset:1px}
+button{font:600 15px system-ui;border:1.5px solid var(--ink);background:#fff;color:var(--ink);border-radius:6px;padding:9px 14px;cursor:pointer}
+button.pri{background:var(--ink);color:#fff}
+button.sm{padding:4px 9px;font-size:13px}
+button:disabled{opacity:.5}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.muted{color:var(--soft);font-size:14px}
+.flash{min-height:190px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;cursor:pointer;padding:20px}
+.flash .term{font:700 38px/1.1 Caveat,cursive;background:linear-gradient(transparent 55%,var(--pink) 55%);padding:0 6px}
+.flash .def{font-size:18px;margin-top:8px}.flash .ex{color:var(--soft);font-style:italic;margin-top:8px}
+.tag{display:inline-block;font-size:12px;background:var(--orange);border-radius:4px;padding:1px 7px;margin-left:6px}
+.item{border-bottom:1px dashed var(--line);padding:8px 0;display:flex;justify-content:space-between;gap:10px}
+.item:last-child{border:0}
+.fb h3{font:700 26px Caveat,cursive;margin:8px 0 2px}
+.bad{background:#ffe3ef;border-radius:4px;padding:0 4px}.good{background:var(--green);border-radius:4px;padding:0 4px}
+.score{font:700 44px Caveat,cursive}
+pre{white-space:pre-wrap;font:inherit;margin:0}
+@media(prefers-reduced-motion:no-preference){button{transition:transform .08s}button:active{transform:scale(.97)}}
+</style>
+</head>
+<body>
+<header><h1><span>My English Tutor</span></h1><div class="muted">Add your notes. Practise. Get checked.</div></header>
+<nav id="nav"></nav>
+<main>
+
+<section id="t-add">
+  <div class="card">
+    <b>Add from notes or photos</b>
+    <p class="muted">Paste text, or upload photos of your notebook. AI turns them into cards and grammar notes.</p>
+    <textarea id="raw" rows="5" placeholder="Paste words, definitions, grammar rules..."></textarea>
+    <input type="file" id="files" accept="image/*" multiple>
+    <div class="row"><button class="pri" id="extract">Extract with AI</button><span class="muted" id="exStatus"></span></div>
+  </div>
+  <div class="card">
+    <b>Add one word by hand</b>
+    <input id="mTerm" placeholder="Word or phrase">
+    <input id="mDef" placeholder="Meaning">
+    <input id="mEx" placeholder="Example sentence (optional)">
+    <input id="mTopic" placeholder="Topic, e.g. City living">
+    <div class="row"><button id="mAdd">Add word</button></div>
+  </div>
+  <div class="card"><b>Add a grammar note</b>
+    <input id="gTitle" placeholder="Title, e.g. Second conditional">
+    <textarea id="gNote" rows="3" placeholder="Rule and examples"></textarea>
+    <div class="row"><button id="gAdd">Add grammar</button></div>
+  </div>
+  <div class="card"><b>Your library</b> <span class="muted" id="count"></span><div id="lib"></div></div>
+</section>
+
+<section id="t-cards">
+  <div class="row"><select id="topicSel" style="max-width:260px"></select><span class="muted" id="stat"></span></div>
+  <div class="card flash" id="flash"></div>
+  <div class="row" id="rate" style="justify-content:center">
+    <button id="r0">Again</button><button id="r1">Good</button><button id="r2">Easy</button>
+  </div>
+  <p class="muted">Before you flip: say the meaning out loud and make your own sentence.</p>
+</section>
+
+<section id="t-speak"></section>
+<section id="t-write"></section>
+
+<section id="t-grammar">
+  <div id="gList"></div>
+  <div class="card" id="drillBox" style="display:none">
+    <b id="drillTitle"></b>
+    <div class="card" style="margin-top:8px"><pre id="drillQ"></pre></div>
+    <textarea id="drillA" rows="6" placeholder="Write your answers here"></textarea>
+    <div class="row"><button class="pri" id="drillCheck">Check answers</button></div>
+    <div id="drillFb" class="fb" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<section id="t-settings">
+  <div class="card">
+    <b>AI provider</b>
+    <select id="prov"><option value="gemini">Gemini (free tier, key from aistudio.google.com)</option><option value="anthropic">Claude (paid, key from console.anthropic.com)</option></select>
+    <p class="muted">Your key is saved only in this browser, never in the website code.</p>
+    <input id="key" type="password" placeholder="Paste your key">
+    <input id="model" placeholder="Model">
+    <div class="row"><button class="pri" id="saveCfg">Save</button></div>
+  </div>
+  <div class="card">
+    <b>Backup</b>
+    <p class="muted">Your words live in this browser. Export a file to keep them safe or move to another device.</p>
+    <div class="row"><button id="exp">Export</button><input type="file" id="imp" accept=".json"></div>
+  </div>
+</section>
+</main>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let S;try{S=JSON.parse(localStorage.tutorData)}catch(e){}
+S=S||{words:[],grammar:[]};
+const save=()=>localStorage.tutorData=JSON.stringify(S);
+const uid=()=>Math.random().toString(36).slice(2,10);
+const DEF={gemini:'gemini-3.8-flash',anthropic:'claude-sonnet-5-5'};
+const prov=()=>localStorage.provider||'gemini';
+const cfg=()=>{const p=prov();return{p,key:localStorage['key_'+p]||(p=='anthropic'?localStorage.apiKey:'')||'',model:localStorage['model_'+p]||DEF[p]}};
+
+/* tabs */
+const TABS=[['add','Add'],['cards','Cards'],['speak','Speaking'],['write','Writing'],['grammar','Grammar'],['settings','Settings']];
+$('#nav').innerHTML=TABS.map(t=>`<button data-t="${t[0]}">${t[1]}</button>`).join('');
+function go(t){document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id=='t-'+t));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));
+  if(t=='cards')renderCards();window.scrollTo(0,0)}
+$('#nav').onclick=e=>{if(e.target.dataset.t)go(e.target.dataset.t)};
+
+/* AI call */
+async function ai(system,content,max=2500){
+  const c=cfg();
+  if(!c.key){alert('Add your AI key in Settings first.');go('settings');throw new Error('no key')}
+  if(c.p=='gemini'){
+    const parts=typeof content=='string'?[{text:content}]:content.map(x=>x.type=='image'?{inline_data:{mime_type:'image/jpeg',data:x.source.data}}:{text:x.text});
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${c.model}:generateContent`,{method:'POST',
+      headers:{'content-type':'application/json','x-goog-api-key':c.key},
+      body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts}]})});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error?.message||'AI error');
+    return (d.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('');
+  }
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+    headers:{'content-type':'application/json','x-api-key':c.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:c.model,max_tokens:max,system,messages:[{role:'user',content}]})});
+  const d=await r.json();
+  if(!r.ok)throw new Error(d.error?.message||'AI error');
+  return d.content.map(x=>x.text||'').join('');
+}
+function parseJSON(t){const m=t.match(/[\[{][\s\S]*[\]}]/);return JSON.parse(m?m[0]:t)}
+const TUTOR='You are a friendly, honest English tutor for an advanced learner whose first language is Russian. Be specific and concise.';
+
+/* library */
+function renderLib(){
+  $('#count').textContent=`${S.words.length} words, ${S.grammar.length} grammar notes`;
+  $('#lib').innerHTML=S.words.slice().reverse().map(w=>`<div class="item"><div><b>${esc(w.term)}</b>${w.topic?`<span class="tag">${esc(w.topic)}</span>`:''}<div>${esc(w.def)}</div>${w.ex?`<div class="muted"><i>${esc(w.ex)}</i></div>`:''}</div><button class="sm" data-del="w:${w.id}">Delete</button></div>`).join('')||'<p class="muted">Nothing here yet. Add your first words above.</p>';
+  $('#gList').innerHTML=S.grammar.map(g=>`<div class="card"><b>${esc(g.title)}</b><pre class="muted">${esc(g.note)}</pre><div class="row"><button class="pri sm" data-drill="${g.id}">Drill me</button><button class="sm" data-del="g:${g.id}">Delete</button></div></div>`).join('')||'<div class="card muted">No grammar notes yet. Add them in the Add tab.</div>';
+  const topics=[...new Set(S.words.map(w=>w.topic).filter(Boolean))];
+  const cur=$('#topicSel').value;
+  $('#topicSel').innerHTML='<option value="">All topics</option>'+topics.map(t=>`<option ${t==cur?'selected':''}>${esc(t)}</option>`).join('');
+}
+document.addEventListener('click',e=>{
+  const d=e.target.dataset;
+  if(d.del){const[k,id]=d.del.split(':');if(!confirm('Delete this?'))return;
+    S[k=='w'?'words':'grammar']=S[k=='w'?'words':'grammar'].filter(x=>x.id!=id);save();renderLib();renderCards()}
+  if(d.drill)drill(d.drill);
+});
+function addWords(list){let n=0;
+  list.forEach(w=>{if(!w.term||!w.def)return;if(S.words.some(x=>x.term.toLowerCase()==w.term.toLowerCase()))return;
+    S.words.push({id:uid(),term:w.term,def:w.def,ex:w.ex||'',topic:w.topic||'',box:0,due:0});n++});
+  save();renderLib();return n}
+$('#mAdd').onclick=()=>{if(!$('#mTerm').value||!$('#mDef').value)return alert('Add a word and its meaning.');
+  addWords([{term:$('#mTerm').value.trim(),def:$('#mDef').value.trim(),ex:$('#mEx').value.trim(),topic:$('#mTopic').value.trim()}]);
+  ['mTerm','mDef','mEx'].forEach(i=>$('#'+i).value='')};
+$('#gAdd').onclick=()=>{if(!$('#gTitle').value)return alert('Add a title.');
+  S.grammar.push({id:uid(),title:$('#gTitle').value.trim(),note:$('#gNote').value.trim()});save();renderLib();$('#gTitle').value=$('#gNote').value=''};
+
+/* extract from text / photos */
+function img64(file){return new Promise(res=>{const i=new Image();i.onload=()=>{const k=Math.min(1,1600/Math.max(i.width,i.height));
+  const c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);
+  res(c.toDataURL('image/jpeg',.85).split(',')[1])};i.src=URL.createObjectURL(file)})}
+$('#extract').onclick=async()=>{
+  const txt=$('#raw').value.trim(),files=[...$('#files').files];
+  if(!txt&&!files.length)return alert('Paste some notes or choose a photo.');
+  const b=$('#extract');b.disabled=true;$('#exStatus').textContent='Reading...';
+  try{
+    const content=[];
+    for(const f of files)content.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:await img64(f)}});
+    content.push({type:'text',text:`Extract everything from these notes (handwriting may be messy; English mixed with Russian).
+Return ONLY JSON: {"words":[{"term":"","def":"","ex":"","topic":""}],"grammar":[{"title":"","note":""}]}
+Rules: def = short clear English meaning (add the Russian from the notes in brackets if present). If there is no example, write a natural advanced example sentence. topic = the section heading if any. Skip anything you cannot read.
+${txt?'\nText notes:\n'+txt:''}`});
+    const out=parseJSON(await ai(TUTOR,content,4000));
+    const n=addWords(out.words||[]);let g=0;
+    (out.grammar||[]).forEach(x=>{if(x.title&&!S.grammar.some(y=>y.title.toLowerCase()==x.title.toLowerCase())){S.grammar.push({id:uid(),title:x.title,note:x.note||''});g++}});
+    save();renderLib();$('#exStatus').textContent=`Added ${n} words, ${g} grammar notes.`;$('#raw').value='';$('#files').value='';
+  }catch(e){$('#exStatus').textContent='Failed: '+e.message}
+  b.disabled=false};
+
+/* flashcards */
+let cur=null,shown=false;
+function renderCards(){
+  const t=$('#topicSel').value,now=Date.now();
+  const q=S.words.filter(w=>(!t||w.topic==t)&&w.due<=now);
+  cur=q[Math.floor(Math.random()*Math.min(q.length,5))]||null;shown=false;
+  $('#stat').textContent=`${q.length} due, ${S.words.length} total`;
+  $('#rate').style.display='none';
+  const f=$('#flash');
+  if(!cur){f.innerHTML=S.words.length?'<div><b>All done for now.</b><div class="muted">Try Speaking or Writing to use these words.</div></div>':'<div class="muted">Add words first.</div>';return}
+  f.innerHTML=`<div class="term">${esc(cur.term)}</div><div class="muted">Tap to flip</div>`;
+}
+$('#flash').onclick=()=>{if(!cur||shown)return;shown=true;
+  $('#flash').innerHTML=`<div class="term">${esc(cur.term)}</div><div class="def">${esc(cur.def)}</div>${cur.ex?`<div class="ex">${esc(cur.ex)}</div>`:''}`;
+  $('#rate').style.display='flex'};
+const DAYS=[0.007,1,3,7,14,30];
+function rate(n){if(!cur)return;cur.box=n==0?0:Math.min(5,cur.box+n);cur.due=Date.now()+DAYS[cur.box]*864e5;save();renderCards()}
+$('#r0').onclick=()=>rate(0);$('#r1').onclick=()=>rate(1);$('#r2').onclick=()=>rate(2);
+$('#topicSel').onchange=renderCards;
+
+/* speaking + writing */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
+function mic(btn,ta){
+  if(!SR)return alert('Speech recognition works in Chrome or Safari. You can type instead.');
+  if(rec){rec.stop();return}
+  rec=new SR();rec.lang='en-US';rec.continuous=true;rec.interimResults=false;
+  rec.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal)ta.value+=(ta.value?' ':'')+e.results[i][0].transcript.trim()};
+  rec.onend=()=>{rec=null;btn.textContent='Start speaking'};
+  rec.start();btn.textContent='Stop'}
+function pick(){
+  const w=S.words.slice().sort((a,b)=>a.box-b.box+(Math.random()-.5)*2).slice(0,4);
+  const g=S.grammar.length?S.grammar[Math.floor(Math.random()*S.grammar.length)]:null;return{w,g}}
+function mkPractice(mode){
+  const R=$('#t-'+mode),sp=mode=='speak';let task='',tg={w:[],g:null};
+  R.innerHTML=`<div class="card"><div class="row"><button class="pri" id="${mode}New">New task</button></div>
+  <div id="${mode}Task" class="muted" style="margin-top:8px">Press New task. You get a prompt built from your own words and grammar.</div></div>
+  <div class="card"><textarea id="${mode}Text" rows="9" placeholder="${sp?'Speak, then fix the text if needed':'Write your answer here'}"></textarea>
+  <div class="row">${sp?`<button id="${mode}Mic">Start speaking</button>`:''}<button class="pri" id="${mode}Check">Check with AI</button></div></div>
+  <div id="${mode}Fb" class="card fb" style="display:none"></div>`;
+  $('#'+mode+'New').onclick=async()=>{
+    tg=pick();const b=$('#'+mode+'New');b.disabled=true;$('#'+mode+'Task').textContent='Thinking...';
+    try{
+      const t=await ai(TUTOR,`Create ONE ${sp?'speaking task (a 45-60 second spoken answer)':'writing task (150-200 words)'} at an advanced level, 2-3 sentences long, that naturally invites using ${tg.w.length?'these words/phrases: '+tg.w.map(w=>w.term).join('; '):'advanced vocabulary'}${tg.g?' and this grammar: '+tg.g.title:''}. Do not list the targets in the task. Return only the task text.`,500);
+      task=t.trim();
+      $('#'+mode+'Task').innerHTML=`<div style="color:var(--ink);font-size:17px">${esc(task)}</div><div class="muted" style="margin-top:8px">Try to use: ${tg.w.map(w=>`<span class="good">${esc(w.term)}</span>`).join(' ')} ${tg.g?`<span class="tag">${esc(tg.g.title)}</span>`:''}</div>`;
+      $('#'+mode+'Text').value='';$('#'+mode+'Fb').style.display='none';
+    }catch(e){$('#'+mode+'Task').textContent='Failed: '+e.message}
+    b.disabled=false};
+  if(sp)$('#speakMic').onclick=()=>mic($('#speakMic'),$('#speakText'));
+  $('#'+mode+'Check').onclick=async()=>{
+    const text=$('#'+mode+'Text').value.trim();if(!text)return alert('Write or say something first.');
+    const b=$('#'+mode+'Check'),fb=$('#'+mode+'Fb');b.disabled=true;fb.style.display='block';fb.textContent='Checking...';
+    try{
+      const out=parseJSON(await ai(TUTOR,`Task: ${task||'free practice'}
+Target words: ${tg.w.map(w=>w.term).join('; ')||'none'}
+Target grammar: ${tg.g?tg.g.title+' - '+tg.g.note:'none'}
+Student's ${sp?'spoken answer (transcribed, so ignore punctuation and capitalisation)':'text'}:
+"""${text}"""
+Return ONLY JSON: {"score":1-10,"used":["target words used correctly"],"missed":["target words not used or used wrongly"],"grammar_used":true/false,"errors":[{"wrong":"","fix":"","why":"short reason"}],"upgraded":"the student's answer rewritten at a more advanced level, keeping their ideas and using the target words and grammar","tip":"one specific thing to practise next"}`,2500));
+      const used=(out.used||[]).map(x=>x.toLowerCase());
+      S.words.forEach(w=>{if(used.includes(w.term.toLowerCase())){w.box=Math.min(5,w.box+1);w.due=Date.now()+DAYS[w.box]*864e5}});save();
+      fb.innerHTML=`<div class="score">${esc(out.score)}/10</div>
+      ${out.used?.length?`<div>Used well: ${out.used.map(x=>`<span class="good">${esc(x)}</span>`).join(' ')}</div>`:''}
+      ${out.missed?.length?`<div>Missed: ${out.missed.map(x=>`<span class="bad">${esc(x)}</span>`).join(' ')}</div>`:''}
+      ${tg.g?`<div>Grammar target (${esc(tg.g.title)}): ${out.grammar_used?'used':'not used yet'}</div>`:''}
+      ${out.errors?.length?`<h3>Fix these</h3>${out.errors.map(x=>`<div class="item"><div><span class="bad">${esc(x.wrong)}</span> to <span class="good">${esc(x.fix)}</span><div class="muted">${esc(x.why)}</div></div></div>`).join('')}`:'<h3>No clear errors</h3>'}
+      <h3>More advanced version</h3><pre>${esc(out.upgraded)}</pre>
+      <h3>Next</h3><div>${esc(out.tip)}</div>`;
+    }catch(e){fb.textContent='Failed: '+e.message}
+    b.disabled=false};
+}
+mkPractice('speak');mkPractice('write');
+
+/* grammar drills */
+let drillG=null;
+async function drill(id){
+  drillG=S.grammar.find(g=>g.id==id);go('grammar');
+  const box=$('#drillBox');box.style.display='block';$('#drillTitle').textContent='Drill: '+drillG.title;
+  $('#drillQ').textContent='Making exercises...';$('#drillA').value='';$('#drillFb').innerHTML='';box.scrollIntoView();
+  try{$('#drillQ').textContent=await ai(TUTOR,`Make 6 numbered exercises on this grammar for an advanced learner: ${drillG.title}. Notes: ${drillG.note}
+Mix: complete the sentence, rewrite the sentence using the structure, and 2 that need a short personal answer. Use topics like city and rural life, society, media, or education. No answers.`,1200)}
+  catch(e){$('#drillQ').textContent='Failed: '+e.message}}
+$('#drillCheck').onclick=async()=>{
+  if(!drillG||!$('#drillA').value.trim())return alert('Write your answers first.');
+  const b=$('#drillCheck');b.disabled=true;$('#drillFb').textContent='Checking...';
+  try{$('#drillFb').innerHTML=`<pre>${esc(await ai(TUTOR,`Grammar: ${drillG.title}\nExercises:\n${$('#drillQ').textContent}\nStudent answers:\n${$('#drillA').value}\nMark each answer right or wrong, give the corrected version, and explain mistakes in one short line. End with one tip. Plain text, no markdown symbols.`,2000))}</pre>`}
+  catch(e){$('#drillFb').textContent='Failed: '+e.message}
+  b.disabled=false};
+
+/* settings */
+function loadCfg(){const c=cfg();$('#prov').value=c.p;$('#key').value=c.key;$('#model').value=c.model}
+loadCfg();
+$('#prov').onchange=()=>{localStorage.provider=$('#prov').value;loadCfg()};
+$('#saveCfg').onclick=()=>{const p=$('#prov').value;localStorage.provider=p;localStorage['key_'+p]=$('#key').value.trim();localStorage['model_'+p]=$('#model').value.trim()||DEF[p];alert('Saved.')};
+$('#exp').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='my-english-tutor.json';a.click()};
+$('#imp').onchange=async e=>{try{const d=JSON.parse(await e.target.files[0].text());S={words:d.words||[],grammar:d.grammar||[]};save();renderLib();alert('Imported.')}catch{alert('That file could not be read.')}};
+
+renderLib();go('add');
+</script>
+</body>
+</html>
